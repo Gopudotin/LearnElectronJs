@@ -1,6 +1,7 @@
-const { app, BrowserWindow,Menu } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain } = require("electron");
 const path = require("node:path");
-const {mainMenu} = require("./Menu/menuMaker")
+const fs = require('fs');
+const { mainMenu, popMenu } = require("./Menu/menuMaker");
 
 const createWindow = () => {
   // Create the browser window.
@@ -9,29 +10,63 @@ const createWindow = () => {
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: true, // Ensure nodeIntegration is enabled
+      contextIsolation: false // Ensure contextIsolation is disabled
     },
   });
 
+  Menu.setApplicationMenu(mainMenu);
+
   mainWindow.loadFile("index.html");
+  mainWindow.webContents.on("context-menu", () => {
+    popMenu.popup(mainWindow.webContents);
+  });
   mainWindow.webContents.openDevTools();
 };
-
-Menu.setApplicationMenu(mainMenu);
-
 
 app.whenReady().then(() => {
   createWindow();
 
   app.on("activate", () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+// ipcMain.on("saveText", (event, textValue) => {
+//   fs.writeFile("c:\\Temporary\\file1.txt",textValue,(err) =>{
+//     if(!err){
+//       console.log('file Written')
+//     }
+//     else{
+//       console.log(err);
+//     }
+//   }),
+ipcMain.on("saveText", (event, textValue) => {
+  fs.appendFile("c:\\Temporary\\file1.txt",textValue,(err) =>{
+    if(!err){
+      console.log('file Appended')
+    }
+    else{
+      console.log(err);
+    }
+  })
+
+});
+
+// ipcMain.on("createTextFile", (event, filePath) => {
+//   // Create the empty text file at the specified path
+//   fs.writeFile(filePath, "", (err) => {
+//     if (err) {
+//       console.error("Error creating file:", err);
+//     } else {
+//       console.log("New text file created:", filePath);
+//       // Optionally, open the newly created file in the main window
+//       // const mainWindow = BrowserWindow.getAllWindows()[0];
+//       // mainWindow.loadFile(filePath);
+//     }
+//   });
+// });
